@@ -1,0 +1,6 @@
+install chocolatey from :
+	https://chocolatey.org/install
+then run :
+	choco install llvm opencv
+then set the enviroment variables as seen in the provided screenshot
+then copy the opencv_world_4100.dll to /target/release

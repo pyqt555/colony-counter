@@ -1,0 +1,143 @@
+use anyhow::*;
+use ndarray::{ArrayBase, ArrayView, ArrayView3};
+use opencv::{
+    core::Mat,
+    highgui, imgcodecs, imgproc,
+    prelude::{MatTraitConst, MatTraitConstManual},
+};
+
+trait AsArray {
+    fn try_as_array(&self) -> anyhow::Result<ArrayView3<u8>>;
+}
+impl AsArray for Mat {
+    fn try_as_array(&self) -> anyhow::Result<ArrayView3<u8>> {
+        if !self.is_continuous() {
+            return Err(anyhow::anyhow!("Mat is not continuous"));
+        }
+        let bytes = self.data_bytes()?;
+        let size = self.size()?;
+        let a = ArrayView3::from_shape((size.height as usize, size.width as usize, 3), bytes)?;
+        Ok(a)
+    }
+}
+
+fn main() -> anyhow::Result<()> {
+    let path = "D:\\projects\\rust\\getStarted\\start\\img\\cells.jpg";
+    println!("Hello, world!");
+    highgui::named_window("window", 1)?;
+    // Open the web-camera (assuming you have one)
+    let mut img = imgcodecs::imread(path, imgcodecs::IMREAD_COLOR)?;
+
+    let mut gray: opencv::core::Mat = Default::default();
+    imgproc::cvt_color(&img, &mut gray, imgproc::COLOR_BGR2GRAY, 0)?;
+    let mut thresh: opencv::core::Mat = Default::default();
+    imgproc::threshold(
+        &gray,
+        &mut thresh,
+        0.0,
+        255.0,
+        imgproc::THRESH_BINARY_INV + imgproc::THRESH_OTSU,
+    )?;
+
+    let mut opening: opencv::core::Mat = Default::default();
+    let mut anchor: opencv::core::Point = Default::default();
+    anchor.x = -1;
+    anchor.y = -1;
+    let mut ksize: opencv::core::Size = Default::default();
+    ksize.width = 3;
+    ksize.height = 3;
+    let kernel = imgproc::get_structuring_element(0, ksize, anchor)?;
+    let border_value = imgproc::morphology_default_border_value()?;
+    imgproc::morphology_ex(
+        &thresh,
+        &mut opening,
+        imgproc::MORPH_OPEN,
+        &kernel,
+        anchor,
+        2,
+        opencv::core::BORDER_CONSTANT,
+        border_value,
+    )?;
+
+    let mut sure_bg: opencv::core::Mat = Default::default();
+    imgproc::dilate(
+        &opening,
+        &mut sure_bg,
+        &kernel,
+        anchor,
+        3,
+        opencv::core::BORDER_CONSTANT,
+        border_value,
+    )?;
+    let mut dist_transform: Mat = Default::default();
+    imgproc::distance_transform_def(&opening, &mut dist_transform, imgproc::DIST_L2, 5)?;
+
+    let mut min_val: f64 = 0.0;
+    let mut max_val: f64 = 0.0;
+    opencv::core::min_max_loc(
+        &dist_transform,
+        Some(&mut min_val),
+        Some(&mut max_val),
+        None,
+        None,
+        &opencv::core::no_array(),
+    )?;
+    let mut sure_fg: Mat = Default::default();
+    imgproc::threshold(&dist_transform, &mut sure_fg, max_val * 0.5, 255.0, 0)?;
+
+    let mut unknown: Mat = Default::default();
+    let mut sure_fg_i: Mat = Default::default();
+    sure_fg.convert_to(&mut sure_fg_i, sure_bg.depth(), 1.0, 0.0)?;
+    opencv::core::subtract(
+        &sure_bg,
+        &sure_fg,
+        &mut unknown,
+        &opencv::core::no_array(),
+        sure_bg.depth(),
+    )?;
+    let mut markers: Mat = Default::default();
+    imgproc::connected_components_def(&sure_fg_i, &mut markers)?;
+
+    let mut increased_markers: Mat = Default::default();
+    opencv::core::add(
+        &markers,
+        &1.0,
+        &mut increased_markers,
+        &opencv::core::no_array(),
+        markers.depth(),
+    )?;
+    let mut showmarkers: Mat = Default::default();
+    markers.convert_to_def(&mut showmarkers, sure_bg.depth())?;
+    let marker_array: ArrayView3<u8> = markers.try_as_array()?;
+    let test = marker_array.index();
+
+    imgproc::watershed(&mut img, &mut markers)?;
+
+    let mut showmarkers: Mat = Default::default();
+    markers.convert_to_def(&mut showmarkers, sure_bg.depth())?;
+
+    let mut min_val: f64 = 0.0;
+    let mut max_val: f64 = 0.0;
+    opencv::core::min_max_loc(
+        &markers,
+        Some(&mut min_val),
+        Some(&mut max_val),
+        None,
+        None,
+        &opencv::core::no_array(),
+    )?;
+    println!("{}", max_val);
+    // and display in the window
+    loop {
+        highgui::imshow("window", &showmarkers)?;
+        highgui::imshow("original", &img)?;
+        highgui::imshow("unknown", &unknown)?;
+        highgui::imshow("sure_fg", &sure_fg)?;
+        let key = highgui::wait_key(1)?;
+        if key == 113 {
+            // quit with q
+            break;
+        }
+    }
+    Ok(())
+}
