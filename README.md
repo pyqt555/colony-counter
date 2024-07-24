@@ -1,4 +1,4 @@
-Installation guide:
+Installation guide: 
 First install chocolatey from :
 	https://chocolatey.org/install
 then run :
