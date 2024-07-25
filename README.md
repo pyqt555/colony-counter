@@ -12,7 +12,7 @@ Installation guide:
 
 	afterwards set the following enviroment variables:
 
-		![env_var](https://github.com/user-attachments/assets/49b89139-16d1-4ac1-8da9-326ba019a3b6)
+![env_var](https://github.com/user-attachments/assets/209f1e37-f16d-4d61-9fb2-fe861a57f35e)
 
 	download the latest release from https://github.com/pyqt555/colony-counter/releases
 
