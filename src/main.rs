@@ -3,11 +3,19 @@ use opencv::{
     highgui::{self},
     imgcodecs, imgproc,
 };
+use rfd::FileDialog;
 use std::cmp::max;
 
 fn main() -> anyhow::Result<()> {
     println!("opencv version: {}", opencv::core::CV_VERSION);
-    let path = "D:\\projects\\rust\\getStarted\\start\\img\\cells.jpg";
+
+    let binding = FileDialog::new()
+        .add_filter("image", &["jpg", "png", "jpeg", "bmp", "tiff"])
+        .set_directory("/")
+        .pick_file()
+        .expect("File selection failed");
+
+    let path = binding.to_str(); // "D:\\projects\\rust\\getStarted\\start\\img\\cells.jpg";
     highgui::named_window("window", 1)?;
 
     let mut ced_param: f64;
@@ -27,7 +35,7 @@ fn main() -> anyhow::Result<()> {
     loop {
         hough_param = max(1, hough_param_int / 10) as f64;
         ced_param = max(ced_param_int, 1) as f64;
-        let mut img = imgcodecs::imread(path, imgcodecs::IMREAD_COLOR)?;
+        let mut img = imgcodecs::imread(path.expect("Invalid filepath"), imgcodecs::IMREAD_COLOR)?;
 
         let mut gray: opencv::core::Mat = Default::default();
         imgproc::cvt_color(&img, &mut gray, imgproc::COLOR_BGR2GRAY, 0)?;
@@ -57,11 +65,10 @@ fn main() -> anyhow::Result<()> {
         )?;
 
         println!("{}", circles.len());
-        for index in 0..(circles.len() - 1) {
-            let a = circles.get(index).unwrap();
-            let x = a.get(0).unwrap();
-            let y = a.get(1).unwrap();
-            let r = a.get(2).unwrap();
+        for a in circles {
+            let x = a.get(0).expect("Invalid circle x");
+            let y = a.get(1).expect("Invalid circle x");
+            let r = a.get(2).expect("Invalid circle x");
             imgproc::circle_def(
                 &mut img,
                 opencv::core::Point::new(*x as i32, *y as i32),
