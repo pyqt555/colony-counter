@@ -12,9 +12,11 @@ Installation guide:
 
 	afterwards set the following enviroment variables:
 
-![env_var](https://github.com/user-attachments/assets/209f1e37-f16d-4d61-9fb2-fe861a57f35e)
+![env_vars](https://github.com/user-attachments/assets/71c805a9-aa40-4d31-ba7a-bee74afc5607)
+
 
 	download the latest release from https://github.com/pyqt555/colony-counter/releases
 
 	now copy the opencv_world_4100.dll file to the directory in which you put the .exe file 
+![dll](https://github.com/user-attachments/assets/317c48da-1ff8-42ed-92ea-db62b0a03b95)
 
