@@ -15,26 +15,30 @@ fn main() -> anyhow::Result<()> {
         .pick_file()
         .expect("File selection failed");
 
-    let path = binding.to_str(); // "D:\\projects\\rust\\getStarted\\start\\img\\cells.jpg";
-    highgui::named_window("window", 1)?;
+    let path = binding.to_str();
+
+    highgui::named_window("edges", 1)?;
+    highgui::named_window("controls", 1)?;
+
+    highgui::resize_window("controls", 450, 150)?;
 
     let mut ced_param: f64;
     let mut hough_param: f64;
+    let mut min_dist: f64;
     let mut hough_param_int = 120;
     let mut ced_param_int = 200;
+    let mut max_size_int = 20;
+    let mut min_dist_int = 4;
 
-    highgui::create_trackbar(
-        "hough_param",
-        "window",
-        Some(&mut hough_param_int),
-        400,
-        None,
-    )?;
-    highgui::create_trackbar("canny_param", "window", Some(&mut ced_param_int), 400, None)?;
-    // Open the web-camera (assuming you have one)
+    highgui::create_trackbar("Circles", "controls", Some(&mut hough_param_int), 400, None)?;
+    highgui::create_trackbar("Edges", "controls", Some(&mut ced_param_int), 800, None)?;
+    highgui::create_trackbar("Max size", "controls", Some(&mut max_size_int), 400, None)?;
+    highgui::create_trackbar("Min dist", "controls", Some(&mut min_dist_int), 100, None)?;
+
     loop {
         hough_param = max(1, hough_param_int / 10) as f64;
         ced_param = max(ced_param_int, 1) as f64;
+        min_dist = max(1, min_dist_int) as f64;
         let mut img = imgcodecs::imread(path.expect("Invalid filepath"), imgcodecs::IMREAD_COLOR)?;
 
         let mut gray: opencv::core::Mat = Default::default();
@@ -57,11 +61,11 @@ fn main() -> anyhow::Result<()> {
             &mut circles,
             imgproc::HOUGH_GRADIENT,
             1.0,
-            4.0,
+            min_dist,
             ced_param,
             hough_param,
             0,
-            20,
+            max_size_int,
         )?;
 
         println!("{}", circles.len());
@@ -77,8 +81,8 @@ fn main() -> anyhow::Result<()> {
             )?;
             // and display in the window
         }
-        highgui::imshow("gray", &gray)?;
-        highgui::imshow("window", &canny)?;
+        highgui::imshow("processed", &gray)?;
+        highgui::imshow("edges", &canny)?;
         highgui::imshow("original", &img)?;
         let key = highgui::wait_key(1)?;
         if key == 113 {
